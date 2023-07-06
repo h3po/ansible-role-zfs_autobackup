@@ -1,0 +1,16 @@
+#!/bin/sh
+
+/usr/local/lib/zfs-autobackup/venv/bin/zfs-autobackup \
+  --verbose
+{% if item['parameters'] is defined %}
+{% for parameter, value in item['parameters'].items() %}
+  --{{ parameter }} {% if value %}"{{ value }}"{% endif %} \
+{% endfor %}
+{% endif %}
+{% if item['pre_snapshot_commands'] is defined %}
+{% for cmd in item['pre_snapshot_commands'] %}
+  --pre_snapshot_cmd "sudo {{ cmd }}" \
+{% endfor %}
+{% endif %}
+  {{ item['name'] }} \
+  {{ item['targetdataset'] }}

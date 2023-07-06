@@ -1,0 +1,30 @@
+---
+- name: example playbook
+  hosts: host1
+  become: true
+  vars:
+    zfs_autobackup_volumes:
+      - rpool:
+          autobackup:backupserver1: "true"
+      - rpool/backups:
+          autobackup:backupserver1: "false"
+    zfs_autobackup_jobs:
+      - name: backupserver1
+        targetdataset: tank/backupserver1/backups/zfs-autobackup/host1
+        pre_snapshot_commands:
+          - /usr/sbin/sgdisk -b /boot/sgdisk_partitiontable_sda.bin /dev/sda
+          - /usr/bin/dd if=/dev/sda2 of=/dev/zvol/rpool/efi-backup bs=1M
+        parameters:
+          ssh-target: zfs-autobackup@backupserver1
+          keep-source: 1
+          keep-target: 1d1w,1w3m,1m1y,1y99y
+          buffer: 1G
+          destroy-missing: 1s
+          debug: ""
+    zfs_autobackup_permissionroots:
+      - rpool
+  tasks:
+
+    - name: setup zfs-autobackup
+      ansible.builtin.include_role:
+        name: c10n.zfs_autobackup
