@@ -27,4 +27,4 @@
 
     - name: setup zfs-autobackup
       ansible.builtin.include_role:
-        name: c10n.zfs_autobackup
+        name: h3po.zfs_autobackup

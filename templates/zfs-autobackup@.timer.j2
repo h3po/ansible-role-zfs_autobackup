@@ -1,0 +1,8 @@
+[Unit]
+Description=zfs-autobackup
+
+[Timer]
+OnCalendar={{ zfs_autobackup_timer_schedule }}
+
+[Install]
+WantedBy=timers.target

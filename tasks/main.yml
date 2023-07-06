@@ -1,3 +1,4 @@
+---
 - name: install python packages
   ansible.builtin.package:
     name: "{{ item }}"
@@ -62,12 +63,23 @@
     owner: root
     mode: 0440
 
-- name: template the jobs scripts
+- name: template the job scripts
   ansible.builtin.template:
     src: job.sh.j2
     dest: "/usr/local/lib/zfs-autobackup/job_{{ item['name'] }}.sh"
-    owner: root
-    mode: 0440
+    owner: "{{ zfs_autobackup_user }}"
+    mode: 0544
   loop: "{{ zfs_autobackup_jobs }}"
   loop_control:
     label: "{{ item['name'] }}"
+
+- name: template the systemd units
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    mode: 0644
+  loop:
+    - zfs-autobackup@.service
+    - zfs-autobackup@.timer
+  notify: reload systemd

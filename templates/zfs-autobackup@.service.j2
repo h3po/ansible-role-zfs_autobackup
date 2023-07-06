@@ -1,0 +1,8 @@
+[Unit]
+Description=zfs-autobackup
+
+[Service]
+ExecStart=/usr/bin/bash /usr/local/lib/zfs-autobackup/job_%i.sh
+Type=oneshot
+User={{ zfs_autobackup_user }}
+Group=nogroup
