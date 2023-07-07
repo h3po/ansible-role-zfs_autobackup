@@ -1,24 +1,41 @@
 ---
-- name: install python packages
+- name: install helper packages
   ansible.builtin.package:
     name: "{{ item }}"
   loop:
-    - python3-venv
-    - python3-pip
+    - mbuffer
 
-- name: create the virtualenv
-  ansible.builtin.pip:
-    name: zfs-autobackup
-    state: latest
-    virtualenv: /usr/local/lib/zfs-autobackup/venv
-    virtualenv_command: /usr/bin/python3 -m venv --upgrade
-
-- name: create a service account
+- name: create a restricted service account
   ansible.builtin.user:
     name: "{{ zfs_autobackup_user }}"
     home: /usr/local/lib/zfs-autobackup
     system: true
-    shell: /usr/sbin/nologin
+    shell: "{{ lookup('ansible.builtin.pipe', 'which rbash') }}"
+
+- name: create the rbash shell profile with restricted env
+  ansible.builtin.copy:
+    dest: /usr/local/lib/zfs-autobackup/.bash_profile
+    owner: root
+    mode: 0644
+    content: |
+      PATH="$HOME/bin"
+      export PATH
+
+- name: create the bin directory
+  ansible.builtin.file:
+    path: /usr/local/lib/zfs-autobackup/bin
+    state: directory
+    owner: root
+    mode: 0755
+
+- name: create symlinks for the binaries that zfs-autobackup is allowed to run
+  ansible.builtin.file:
+    path: "/usr/local/lib/zfs-autobackup/bin/{{ item }}"
+    src: "{{ lookup('ansible.builtin.pipe', 'which %s' % item) }}"
+    state: link
+  loop:
+    - zfs
+    - mbuffer
 
 - name: create the .ssh directory
   ansible.builtin.file:
@@ -28,58 +45,10 @@
     group: "{{ zfs_autobackup_user }}"
     mode: 0700
 
-- name: generate an ssh key
-  community.crypto.openssh_keypair:
-    path: /usr/local/lib/zfs-autobackup/.ssh/id_ed25519
-    type: ed25519
-    owner: "{{ zfs_autobackup_user }}"
-    group: "{{ zfs_autobackup_user }}"
-    mode: 0600
+- name: set up zfs-autobackup on the source machine
+  ansible.builtin.include_tasks: source.yml
+  when: zfs_autobackup_role == "source"
 
-- name: make sure the zfs volumes exist
-  community.general.zfs_facts:
-    dataset: "{{ item | dict2items | map(attribute='key') | first }}"
-    properties: name
-  loop: "{{ zfs_autobackup_volumes }}"
-
-- name: set the zfs properties to configure zfs-autobackup
-  community.general.zfs:
-    name: "{{ item | dict2items | map(attribute='key') | first }}"
-    state: present
-    extra_zfs_properties: "{{ item | dict2items | map(attribute='value') | first }}"
-  loop: "{{ zfs_autobackup_volumes }}"
-
-- name: give zfs permissions on to the zfs-autobackup user
-  community.general.zfs_delegate_admin:
-    name: "{{ item }}"
-    users: "{{ zfs_autobackup_user }}"
-    permissions: snapshot,destroy,hold,release,send,mount,create
-  loop: "{{ zfs_autobackup_permissionroots }}"
-
-- name: create sudo exceptions for the pre_snapshot commands
-  ansible.builtin.template:
-    src: pre_snapshot_sudo.j2
-    dest: "/etc/sudoers.d/zfs-autobackup_pre_snapshot"
-    owner: root
-    mode: 0440
-
-- name: template the job scripts
-  ansible.builtin.template:
-    src: job.sh.j2
-    dest: "/usr/local/lib/zfs-autobackup/job_{{ item['name'] }}.sh"
-    owner: "{{ zfs_autobackup_user }}"
-    mode: 0544
-  loop: "{{ zfs_autobackup_jobs }}"
-  loop_control:
-    label: "{{ item['name'] }}"
-
-- name: template the systemd units
-  ansible.builtin.template:
-    src: "{{ item }}.j2"
-    dest: "/etc/systemd/system/{{ item }}"
-    owner: root
-    mode: 0644
-  loop:
-    - zfs-autobackup@.service
-    - zfs-autobackup@.timer
-  notify: reload systemd
+- name: set up zfs-autobackup on the target machine
+  ansible.builtin.include_tasks: target.yml
+  when: zfs_autobackup_role == "target"

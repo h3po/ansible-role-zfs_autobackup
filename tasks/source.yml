@@ -1,0 +1,72 @@
+---
+- name: install python packages
+  ansible.builtin.package:
+    name: "{{ item }}"
+  loop:
+    - python3-venv
+    - python3-pip
+
+- name: create the virtualenv
+  ansible.builtin.pip:
+    name: zfs-autobackup
+    state: latest
+    virtualenv: /usr/local/lib/zfs-autobackup/venv
+    virtualenv_command: /usr/bin/python3 -m venv --upgrade
+
+- name: generate an ssh key
+  community.crypto.openssh_keypair:
+    path: /usr/local/lib/zfs-autobackup/.ssh/id_ed25519
+    type: ed25519
+    owner: "{{ zfs_autobackup_user }}"
+    group: "{{ zfs_autobackup_user }}"
+    mode: 0600
+    comment: "{{ zfs_autobackup_user }}@{{ inventory_hostname_short }}"
+  register: zfs_autobackup_sshkey
+
+- name: make sure the zfs volumes exist
+  community.general.zfs_facts:
+    dataset: "{{ item }}"
+    properties: name
+  loop: "{{ zfs_autobackup_source_datasets.keys() }}"
+
+- name: set the zfs properties to configure zfs-autobackup
+  community.general.zfs:
+    name: "{{ item['key'] }}"
+    state: present
+    extra_zfs_properties: "{{ [('autobackup:%s' % zfs_autobackup_job_name,\
+                           item['value']),] | community.general.dict }}"
+  loop: "{{ zfs_autobackup_source_datasets | dict2items }}"
+  loop_control:
+    label: "{{ item['key'] }}"
+
+- name: give zfs permissions to the zfs-autobackup user
+  community.general.zfs_delegate_admin:
+    name: "{{ item }}"
+    users: "{{ zfs_autobackup_user }}"
+    permissions: "{{ zfs_autobackup_source_permissions }}"
+  loop: "{{ zfs_autobackup_source_permissionroots }}"
+
+- name: create sudo exceptions for the pre_snapshot commands
+  ansible.builtin.template:
+    src: pre_snapshot_sudo.j2
+    dest: "/etc/sudoers.d/zfs-autobackup_{{ zfs_autobackup_job_name }}"
+    owner: root
+    mode: 0440
+
+- name: template the job scripts
+  ansible.builtin.template:
+    src: job.sh.j2
+    dest: "/usr/local/lib/zfs-autobackup/job_{{ zfs_autobackup_job_name }}.sh"
+    owner: "{{ zfs_autobackup_user }}"
+    mode: 0544
+
+- name: template the systemd units
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    mode: 0644
+  loop:
+    - zfs-autobackup@.service
+    - zfs-autobackup@.timer
+  notify: reload systemd

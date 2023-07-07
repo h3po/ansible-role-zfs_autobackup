@@ -2,15 +2,15 @@
 
 /usr/local/lib/zfs-autobackup/venv/bin/zfs-autobackup \
   --verbose \
-{% if item['parameters'] is defined %}
-{% for parameter, value in item['parameters'].items() %}
+{% if zfs_autobackup_job_parameters is defined %}
+{% for parameter, value in zfs_autobackup_job_parameters.items() %}
   --{{ parameter }}{% if value %} "{{ value }}"{% endif %} \
 {% endfor %}
 {% endif %}
-{% if item['pre_snapshot_commands'] is defined %}
-{% for cmd in item['pre_snapshot_commands'] %}
+{% if zfs_autobackup_pre_snapshot_commands is defined %}
+{% for cmd in zfs_autobackup_pre_snapshot_commands %}
   --pre-snapshot-cmd "sudo {{ cmd }}" \
 {% endfor %}
 {% endif %}
-  {{ item['name'] }} \
-  {{ item['targetdataset'] }}
+  {{ zfs_autobackup_job_name }} \
+  {{ zfs_autobackup_target_dataset }}

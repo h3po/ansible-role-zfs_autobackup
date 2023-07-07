@@ -1,5 +1,3 @@
-{% for job in zfs_autobackup_jobs %}
-{% for command in job.pre_snapshot_commands %}
+{% for command in zfs_autobackup_pre_snapshot_commands %}
 {{ zfs_autobackup_user }} ALL=NOPASSWD: {{ command }}
-{% endfor %}
 {% endfor %}
