@@ -9,6 +9,8 @@
   community.general.zfs:
     name: "{{ zfs_autobackup_target_dataset }}"
     state: present
+    extra_zfs_properties:
+      readonly: "on"
 
 - name: give zfs permissions to the zfs-autobackup user
   community.general.zfs_delegate_admin:

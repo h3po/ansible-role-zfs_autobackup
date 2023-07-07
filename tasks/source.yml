@@ -70,3 +70,9 @@
     - zfs-autobackup@.service
     - zfs-autobackup@.timer
   notify: reload systemd
+
+- name: enable the timer unit
+  ansible.builtin.systemd:
+    name: "zfs-autobackup@{{ zfs_autobackup_job_name }}.timer"
+    enabled: true
+    state: started
