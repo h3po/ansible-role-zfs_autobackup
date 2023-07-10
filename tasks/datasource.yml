@@ -36,27 +36,3 @@
     dest: "/etc/sudoers.d/zfs-autobackup_{{ zfs_autobackup_job_name }}"
     owner: root
     mode: 0440
-
-- name: template the job scripts
-  ansible.builtin.template:
-    src: job.sh.j2
-    dest: "/usr/local/lib/zfs-autobackup/job_{{ zfs_autobackup_job_name }}.sh"
-    owner: "{{ zfs_autobackup_user }}"
-    mode: 0544
-
-- name: template the systemd units
-  ansible.builtin.template:
-    src: "{{ item }}.j2"
-    dest: "/etc/systemd/system/{{ item }}"
-    owner: root
-    mode: 0644
-  loop:
-    - zfs-autobackup@.service
-    - zfs-autobackup@.timer
-  notify: reload systemd
-
-- name: enable the timer unit
-  ansible.builtin.systemd:
-    name: "zfs-autobackup@{{ zfs_autobackup_job_name }}.timer"
-    enabled: true
-    state: started

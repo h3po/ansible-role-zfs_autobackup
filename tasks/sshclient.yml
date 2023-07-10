@@ -20,5 +20,29 @@
     owner: "{{ zfs_autobackup_user }}"
     group: "{{ zfs_autobackup_user }}"
     mode: 0600
-    comment: "{{ zfs_autobackup_user }}@{{ inventory_hostname_short }}"
+    comment: "{{ zfs_autobackup_user }}@{{ ansible_host }}"
   register: zfs_autobackup_sshkey
+
+- name: template the job scripts
+  ansible.builtin.template:
+    src: job.sh.j2
+    dest: "/usr/local/lib/zfs-autobackup/job_{{ zfs_autobackup_job_name }}.sh"
+    owner: "{{ zfs_autobackup_user }}"
+    mode: 0544
+
+- name: template the systemd units
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    mode: 0644
+  loop:
+    - zfs-autobackup@.service
+    - zfs-autobackup@.timer
+  notify: reload systemd
+
+- name: enable the timer unit
+  ansible.builtin.systemd:
+    name: "zfs-autobackup@{{ zfs_autobackup_job_name }}.timer"
+    enabled: true
+    state: started
