@@ -1,9 +1,11 @@
 ---
-- name: add the ssh pubkey of the zfs-autobackup user on the source machine
-  ansible.posix.authorized_key:
-    user: "{{ zfs_autobackup_user }}"
-    key: "{{ zfs_autobackup_sshkey.public_key }}"
-    comment: "{{ zfs_autobackup_user }}@{{ inventory_hostname_short }}"
+- name: set up ssh for push mode on the target machine
+  ansible.builtin.include_tasks: sshserver.yml
+  when: zfs_autobackup_mode == "push"
+
+- name: set up ssh for pull mode on the target machine
+  ansible.builtin.include_tasks: sshclient.yml
+  when: zfs_autobackup_mode == "pull"
 
 - name: create the target dataset
   community.general.zfs:

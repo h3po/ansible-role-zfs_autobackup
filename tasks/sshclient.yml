@@ -1,0 +1,24 @@
+---
+- name: install python packages
+  ansible.builtin.package:
+    name: "{{ item }}"
+  loop:
+    - python3-venv
+    - python3-pip
+
+- name: create the virtualenv
+  ansible.builtin.pip:
+    name: zfs-autobackup
+    state: latest
+    virtualenv: /usr/local/lib/zfs-autobackup/venv
+    virtualenv_command: /usr/bin/python3 -m venv --upgrade
+
+- name: generate an ssh key
+  community.crypto.openssh_keypair:
+    path: /usr/local/lib/zfs-autobackup/.ssh/id_ed25519
+    type: ed25519
+    owner: "{{ zfs_autobackup_user }}"
+    group: "{{ zfs_autobackup_user }}"
+    mode: 0600
+    comment: "{{ zfs_autobackup_user }}@{{ inventory_hostname_short }}"
+  register: zfs_autobackup_sshkey

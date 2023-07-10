@@ -46,9 +46,9 @@
     mode: 0700
 
 - name: set up zfs-autobackup on the source machine
-  ansible.builtin.include_tasks: source.yml
+  ansible.builtin.include_tasks: datasource.yml
   when: zfs_autobackup_role == "source"
 
 - name: set up zfs-autobackup on the target machine
-  ansible.builtin.include_tasks: target.yml
+  ansible.builtin.include_tasks: datatarget.yml
   when: zfs_autobackup_role == "target"

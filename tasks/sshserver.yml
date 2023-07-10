@@ -1,0 +1,7 @@
+---
+- name: add the ssh pubkey of the zfs-autobackup user
+  ansible.posix.authorized_key:
+    user: "{{ zfs_autobackup_user }}"
+    key: "{{ zfs_autobackup_sshkey.public_key }}"
+    comment: "{{ zfs_autobackup_user }}@{{ inventory_hostname_short }}"
+  when: zfs_autobackup_sshkey is defined

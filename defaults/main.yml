@@ -4,3 +4,5 @@ zfs_autobackup_source_permissions: snapshot,destroy,hold,release,send,mount,crea
 zfs_autobackup_target_permissions: destroy,hold,release,receive,mount,create
 zfs_autobackup_timer_schedule: "*-*-* 07:00:00"
 zfs_autobackup_pre_snapshot_commands: []
+zfs_autobackup_role: source
+zfs_autobackup_direction: push
