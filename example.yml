@@ -13,8 +13,7 @@
       - rpool
     zfs_autobackup_target_dataset: "tank/host2/backups/zfs-autobackup/{{ inventory_hostname_short }}"
     zfs_autobackup_pre_snapshot_commands:
-      - /usr/sbin/sgdisk -b /boot/sgdisk_partitiontable_sdb.bin /dev/sdb
-      - /usr/bin/dd if=/dev/sdb2 of=/dev/zvol/rpool/efi-backup bs=1M
+      - /usr/local/lib/zfs-autobackup/backup_bootpartition.sh
     zfs_autobackup_job_parameters:
       ssh-target: "{{ zfs_autobackup_user }}@{{ zfs_autobackup_target_host }}"
       keep-source: 1
@@ -23,6 +22,25 @@
       destroy-missing: 1s
       debug: ""
   tasks:
+    - name: create the zfs backup volume for the efi partition
+      community.general.zfs:
+        name: rpool/efi-backup
+        state: present
+        extra_zfs_properties:
+          volsize: 512M
+
+    - name: create the boot partition backup script
+      ansible.builtin.copy:
+        dest: /usr/local/lib/zfs-autobackup/backup_bootpartition.sh
+        owner: root
+        mode: 0744
+        content: |
+          #!/bin/sh
+          EFIPART="/dev/disk/by-uuid/$(pve-efiboot-tool status | grep "is configured with" | head -n1 | cut -d" " -f1)"
+          EFIDISK="$(lsblk -ndo pkname ${EFIPART})"
+          /usr/sbin/sgdisk -b /boot/sgdisk_partitiontable_${EFIDISK}.bin /dev/${EFIDISK}
+          /usr/bin/dd if=${EFIPART} of=/dev/zvol/rpool/efi-backup bs=1M
+
     - name: setup zfs-autobackup on source
       ansible.builtin.import_role:
         name: h3po.zfs_autobackup
