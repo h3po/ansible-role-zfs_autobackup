@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  role_name: zfs_autobackup
+  author: h3po
+  description: ansible role for setting up zfs-autobackup on source and target machines with restricted user accounts, zfs permissions and systemd units
+  license: GPL-3.0-only
+  min_ansible_version: "2.1"
+  platforms:
+    - name: Debian
+      versions:
+        - all
+
+  galaxy_tags:
+    - zfs
+    - backup
+
+dependencies: []
